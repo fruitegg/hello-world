@@ -1,0 +1,146 @@
+# Two digits:
+from random import *
+import sys
+import timeit
+import csv
+
+#If enabled, outputs runtime of key functions
+timeFunctions = False
+#If enabled, prints results in CMD
+displayingResults = False
+#Results will be exported in a CSV file
+exportResults = True
+
+B_operators = ['<<', '>>', '&', '|' ] #basic biwise ops
+T_operators = ['+', '-', '*', '/', '%', '**'] #basic real ops
+A_operators = ['&', '|', '+', '-', '*', '/', '%', '^', '<<', '>>', '//', '**'] #larger set of both bitwise and real ops
+
+#Range of test values:
+INITIAL_TEST_VALUE_MAX = 256 #potential results range
+MIN_TEST_VAL = 1
+MAX_TEST_VAL = 10000
+LOW_LOW_TEST_VAL = 1
+HIGH_LOW_TEST_VAL = 100
+
+#Method 1 = Sampling
+#Method 2 = Iteration (Exhaustive)
+COMP_METHOD = 2
+REPEAT_NUM = 100 # number of iterations for sampling
+
+def Main():
+    '''Manages the computation and output of results'''
+    confirmRun = input("Are you sure [yes/no]?\n")
+    if confirmRun == "yes":
+        GetIterativeResults()
+
+def GetIterativeResults():
+    '''Gets output by iterating through all possible combinations of operators.'''
+    results = GetResults()
+    results = FilterDuplicates(results)
+    results = VerifyResults2(results)
+#   results = NetCommuteFilter(results)
+    if exportResults == True:
+        #TODO: output this at the top of the CSV
+        SaveResultsAsCSV(results)
+
+def SaveResultsAsCSV(L):
+    ''' Exports the results of the program into a CSV file'''
+
+    resultsFile = open("brutewiseOpsResults.csv", "w", newline='')
+    resultsFileWriter = csv.writer(resultsFile, delimiter=',')
+    for row in L:
+        resultsFileWriter.writerow(row)
+    resultsFile.close()
+
+def GetResults():
+    '''Finds all candidate (possible) results.'''
+    results = []
+    numOne = choice(range(INITIAL_TEST_VALUE_MAX))
+    numTwo = choice(range(INITIAL_TEST_VALUE_MAX))
+    for op1 in range(len(A_operators)):
+        for op2 in range(len(A_operators)):
+            for op3 in range(len(A_operators)):
+                for op4 in range(len(A_operators)):
+                    answer = Evaluate(str(numOne),str(numTwo),op1,op2,op3,op4)
+                    if answer != False:
+                        results += [answer]
+    return results
+
+def VerifyResults2(Results):
+    ''' Verifies all results
+    '''
+    tempRes = []
+    for i in Results:
+        if Bit_8(i) == True:
+            tempRes += [i]
+    return tempRes
+
+def VerifyExpression(expression, timesToCheck=1):
+    ''' Input list in form ['op1', 'op2', 'op3', 'op4'] and a number timesToCheck
+    Output: Runs '(A [op1] B) [op2] (A [op3] B) = A [op4] B' timesToCheck times.
+    Returns True if this expression is True for all cases. '''
+    for i in range(timesToCheck):
+        if Bit_8(expression) == False:
+            return False
+    return True
+
+def Evaluate(a,b,w,x,y,z):
+    '''Takes two positive integers as strings and 4 operators and checks if (a op1 b) op2 (a op3 b) = a op4 b'''
+    try:
+        if eval(str(eval(a+A_operators[w]+b))+A_operators[x]+str(eval(a+A_operators[y]+b)))== eval(a+A_operators[z]+b):
+            return [ A_operators[w],A_operators[x],A_operators[y],A_operators[z] ]
+        else:
+            return False
+    except:
+        return False
+
+def FilterDuplicates(results):
+    '''Filters out duplicates from a list.'''
+    uniqueResults = []
+    for i in range(len(results)):
+        if results[i] not in results[i+1:]:
+            uniqueResults += results[i:i+1]
+    return uniqueResults
+
+def CommuteFilter(L1, L2):
+    '''Checks if two lists are commutatively identical'''
+    if L1[0] == L2[2] and L1[2] == L2[0]:
+        if L1[3] == L2[3]:
+            if L1[1] == '+' and L2[1] == '+':
+                return True
+            elif L1[1] == '*' and L2[1] == '*':
+                return True
+    return False
+
+def NetCommuteFilter(Results): # Needs modifications -- mainly because it doesn't work!
+    '''Filters out commutatively identical lists'''
+    Results = Results + [['', '', '', '']]
+    CompRes = []
+    for i in range(len(Results)):
+        for j in range(i+1,len(Results)):
+            print( Results[i], Results[j] )
+            if CommuteFilter(Results[i],Results[j]) == True:
+                break
+            elif Results[i] not in CompRes:
+                CompRes += [ Results[i] ]
+    return CompRes
+
+def Bit_8(L):
+    ''' Takes in a list of operators for a Type One expression and returns True if the expression is a valid bitwise expression up to an 8 bit number
+    '''
+    for i in range(256):
+        for j in range(256):
+            try:
+                if eval(str(eval(str(i)+L[0]+str(j))) + L[1] + str(eval(str(i)+L[2]+str(j)))) == eval(str(i)+L[3]+str(j)):
+                    if eval( str(eval(str(j) +L[0]+ str(i))) + L[1] + str(eval(str(j)+L[2]+str(i))) ) == eval(str(j)+L[3]+str(i)):
+                         continue
+                    else:
+                        return False
+                else:
+                    return False
+            except:
+                return False
+    return True
+
+if __name__  == "__main__":
+    Main()
